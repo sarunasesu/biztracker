@@ -126,12 +126,13 @@ const totalValue = computed(() =>
   products.value.reduce((sum, p) => sum + p.valuePrice * p.stock, 0)
 );
 const lowStockItems = computed(
-  () => products.value.filter((p) => p.stock < 20).length
+  () => products.value.filter((p) => p.stock < 10).length
 );
 </script>
 
 <template>
   <div class="inventory-page">
+    <!-- Header -->
     <div class="page-header">
       <div class="header-content">
         <h1>Inventory Management</h1>
@@ -143,7 +144,17 @@ const lowStockItems = computed(
       </button>
     </div>
 
-    <div class="stats-grid">
+    <!-- Stats Cards with Skeleton -->
+    <div v-if="isLoading" class="stats-grid">
+      <div v-for="n in 4" :key="n" class="stat-card skeleton-card">
+        <div class="stat-icon skeleton"></div>
+        <div class="stat-content">
+          <span class="stat-label skeleton-text"></span>
+          <span class="stat-value skeleton-text"></span>
+        </div>
+      </div>
+    </div>
+    <div v-else class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon blue">
           <CubeIcon />
@@ -185,9 +196,7 @@ const lowStockItems = computed(
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SEARCH AND FILTERS SECTION -->
-    <!-- ============================================ -->
+    <!-- Search and Filters -->
     <div class="search-section">
       <div class="search-container">
         <div class="search-input-wrapper">
@@ -212,24 +221,26 @@ const lowStockItems = computed(
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- PRODUCTS LIST SECTION -->
-    <!-- ============================================ -->
+    <!-- Product List -->
     <div class="products-section">
-      <div class="section-header">
+      <div class="section-header" v-if="!isLoading">
         <h3>Inventory Items</h3>
         <span class="products-count">{{ filteredProducts.length }} items</span>
       </div>
 
-      <div class="products-list">
-        <!-- Show skeletons while loading -->
-        <div v-if="isLoading" class="skeleton-item" v-for="n in 5" :key="n">
+      <!-- Skeleton Items -->
+      <div v-if="isLoading" class="products-list">
+        <div class="skeleton-item" v-for="n in 5" :key="n">
           <div class="skeleton-thumbnail"></div>
           <div class="skeleton-lines">
             <div class="skeleton-line short"></div>
             <div class="skeleton-line"></div>
           </div>
         </div>
+      </div>
+
+      <!-- Actual Product Items -->
+      <div v-else class="products-list">
         <div
           v-for="product in filteredProducts"
           :key="product.id"
@@ -254,7 +265,7 @@ const lowStockItems = computed(
             <div class="metric">
               <span class="metric-label">Quantity</span>
               <span
-                :class="['metric-value', product.stock < 20 ? 'text-red' : '']"
+                :class="['metric-value', product.stock < 10 ? 'text-red' : '']"
               >
                 {{ product.stock }}
               </span>
@@ -265,13 +276,12 @@ const lowStockItems = computed(
             </div>
             <div class="metric">
               <span class="metric-label">Total</span>
-              <span class="metric-value total"
-                >${{
-                  (product.valuePrice * product.stock).toLocaleString()
-                }}</span
-              >
+              <span class="metric-value total">
+                ${{ (product.valuePrice * product.stock).toLocaleString() }}
+              </span>
             </div>
           </div>
+
           <div class="product-actions">
             <button class="action-btn edit">Edit</button>
             <button class="action-btn delete">Delete</button>
@@ -280,6 +290,7 @@ const lowStockItems = computed(
       </div>
     </div>
 
+    <!-- Add Product Modal -->
     <AddProductModal
       :is-open="showAddProductModal"
       @close="closeAddProductModal"

@@ -29,6 +29,8 @@ instance.interceptors.response.use(
         confirmButtonText: "Login",
         confirmButtonColor: "#3b82f6", // Tailwind blue-500
         backdrop: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
       });
 
       window.location.href = "/login";
