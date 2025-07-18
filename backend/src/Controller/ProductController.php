@@ -103,4 +103,19 @@ class ProductController extends AbstractController
 
         return $this->json($products, 200, [], ['groups' => ['product:read']]);
     }
+
+    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+public function delete(Product $product): JsonResponse
+{
+    $user = $this->security->getUser();
+    if (!$user || $product->getUser() !== $user) {
+        return new JsonResponse(['error' => 'Unauthorized'], 403);
+    }
+
+    $this->em->remove($product);
+    $this->em->flush();
+
+    return new JsonResponse(['message' => 'Product deleted successfully']);
+}
+
 }

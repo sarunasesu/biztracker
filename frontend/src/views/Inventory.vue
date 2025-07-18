@@ -8,6 +8,7 @@ let categoryCache: string[] | null = null;
 import { ref, onMounted, computed } from "vue";
 import axios from "../axios"; // Adjust path if necessary
 import AddProductModal from "../components/AddProductModal.vue";
+import Swal from "sweetalert2";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -113,6 +114,45 @@ const handleProductSubmit = async () => {
     console.error("Failed to refresh products:", err);
   } finally {
     isLoading.value = false;
+  }
+};
+
+const deleteProduct = async (id: number) => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This action cannot be undone!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  });
+
+  if (result.isConfirmed) {
+    // Show loading spinner
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      await axios.delete(`/api/products/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Update product list
+      products.value = products.value.filter((p) => p.id !== id);
+      productCache = products.value;
+
+      // Show success message
+      Swal.fire("Deleted!", "The product has been deleted.", "success");
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+      Swal.fire("Error", "An error occurred while deleting.", "error");
+    }
   }
 };
 
@@ -284,7 +324,12 @@ const lowStockItems = computed(
 
           <div class="product-actions">
             <button class="action-btn edit">Edit</button>
-            <button class="action-btn delete">Delete</button>
+            <button
+              class="action-btn delete"
+              @click="deleteProduct(product.id)"
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>
