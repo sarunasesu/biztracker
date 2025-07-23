@@ -334,7 +334,7 @@ const formatDate = (dateStr: string): string => {
           </div>
 
           <div class="revenue-actions">
-            <!-- <button class="action-btn edit">Edit</button> -->
+            <button class="action-btn edit">Edit</button>
             <button
               class="action-btn delete"
               @click="deleteRevenue(revenue.id)"

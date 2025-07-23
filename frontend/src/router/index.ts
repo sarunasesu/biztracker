@@ -7,6 +7,7 @@ import Expenses from "../views/Expenses.vue";
 import Analytics from "../views/Analytics.vue";
 import Reports from "../views/Reports.vue";
 import Login from "../views/Login.vue";
+import Register from "../views/Register.vue";
 import NotFound from "../views/NotFound.vue";
 
 const router = createRouter({
@@ -52,6 +53,12 @@ const router = createRouter({
       path: "/login",
       name: "Login",
       component: Login,
+      meta: { layout: false },
+    },
+    {
+      path: "/register",
+      name: "Register",
+      component: Register,
       meta: { layout: false },
     },
     {

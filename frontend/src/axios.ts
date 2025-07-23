@@ -21,8 +21,7 @@ instance.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("token");
 
-      // Use SweetAlert2 modal instead of alert
-      await Swal.fire({
+      const result = await Swal.fire({
         icon: "error",
         title: "Session Expired",
         text: "Your session has expired. Please log in again.",
@@ -33,7 +32,10 @@ instance.interceptors.response.use(
         allowEscapeKey: false,
       });
 
-      window.location.href = "/login";
+      // ✅ Only redirect if user confirms
+      if (result.isConfirmed) {
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);

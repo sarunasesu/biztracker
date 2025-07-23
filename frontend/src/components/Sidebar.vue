@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { inject, computed } from "vue";
+import { inject, computed, onMounted, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import axios from "../axios"; // your authenticated axios instance
 import {
   HomeIcon,
   CubeIcon,
@@ -8,11 +9,31 @@ import {
   ArrowTrendingDownIcon,
   ChartBarIcon,
   DocumentTextIcon,
+  ArrowRightOnRectangleIcon,
+  UserCircleIcon,
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();
 const route = useRoute();
 const sidebar = inject("sidebar") as any;
+const userEmail = ref("");
+const userName = ref("");
+
+// Fetch email from backend on mount
+onMounted(async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const res = await axios.get("/api/user", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    userEmail.value = res.data.email;
+    userName.value = res.data.fullName;
+  } catch (error) {
+    console.error("Failed to fetch user info:", error);
+  }
+});
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: HomeIcon },
@@ -81,28 +102,26 @@ const logout = () => {
         </button>
       </nav>
 
-      <!-- Logout Button -->
-      <div class="mt-auto p-4 border-t border-gray-200">
-        <button
-          @click="logout"
-          class="w-full flex items-center gap-2 px-4 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-5 h-5 text-red-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-9V5"
-            />
-          </svg>
-          Logout
-        </button>
+      <!-- User Section -->
+      <div class="mt-auto border-t border-gray-200">
+        <!-- User Info -->
+        <div class="user-info" v-if="userEmail">
+          <div class="user-avatar">
+            <UserCircleIcon />
+          </div>
+          <div class="user-details">
+            <div class="user-name">{{ userName }}</div>
+            <div class="user-email">{{ userEmail }}</div>
+          </div>
+        </div>
+
+        <!-- Logout Button -->
+        <div class="sidebar-nav logout-section">
+          <button @click="logout" class="logout-btn">
+            <ArrowRightOnRectangleIcon />
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   </div>

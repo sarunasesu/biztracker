@@ -1,14 +1,14 @@
 <template>
-  <div class="login-container">
+  <div class="register-container">
     <!-- Background with subtle pattern -->
-    <div class="login-background">
+    <div class="register-background">
       <div class="background-pattern"></div>
     </div>
 
-    <!-- Login Card -->
-    <div class="login-card">
+    <!-- Register Card -->
+    <div class="register-card">
       <!-- Logo and Header -->
-      <div class="login-header">
+      <div class="register-header">
         <div class="logo-container">
           <div class="logo-icon">
             <svg
@@ -28,13 +28,45 @@
         </div>
 
         <div class="welcome-text">
-          <h2 class="welcome-title">Welcome back</h2>
-          <p class="welcome-subtitle">Sign in to your account to continue</p>
+          <h2 class="welcome-title">Create Account</h2>
+          <p class="welcome-subtitle">
+            Join BizTracker to manage your business
+          </p>
         </div>
       </div>
 
-      <!-- Login Form -->
-      <form @submit.prevent="login" class="login-form">
+      <!-- Register Form -->
+      <form @submit.prevent="register" class="register-form">
+        <!-- Full Name Input -->
+        <div class="form-group">
+          <label for="fullName" class="form-label">Full Name</label>
+          <div class="input-wrapper">
+            <div class="input-icon">
+              <svg
+                class="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                ></path>
+              </svg>
+            </div>
+            <input
+              id="fullName"
+              v-model="fullName"
+              type="text"
+              placeholder="Enter your full name"
+              class="form-input"
+              required
+            />
+          </div>
+        </div>
+
         <!-- Email Input -->
         <div class="form-group">
           <label for="email" class="form-label">Email Address</label>
@@ -88,20 +120,61 @@
               id="password"
               v-model="password"
               type="password"
-              placeholder="Enter your password"
+              placeholder="Create a password"
               class="form-input"
               required
             />
           </div>
         </div>
 
-        <!-- Remember Me & Forgot Password -->
+        <!-- Confirm Password Input -->
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label"
+            >Confirm Password</label
+          >
+          <div class="input-wrapper">
+            <div class="input-icon">
+              <svg
+                class="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+            </div>
+            <input
+              id="confirmPassword"
+              v-model="confirmPassword"
+              type="password"
+              placeholder="Confirm your password"
+              class="form-input"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Terms and Conditions -->
         <div class="form-options">
           <label class="checkbox-wrapper">
-            <input type="checkbox" class="checkbox-input" />
-            <span class="checkbox-label">Remember me</span>
+            <input
+              v-model="agreeToTerms"
+              type="checkbox"
+              class="checkbox-input"
+              required
+            />
+            <span class="checkbox-label">
+              I agree to the
+              <a href="#" class="terms-link">Terms of Service</a>
+              and
+              <a href="#" class="terms-link">Privacy Policy</a>
+            </span>
           </label>
-          <a href="#" class="forgot-link">Forgot password?</a>
         </div>
 
         <!-- Error Message -->
@@ -118,8 +191,26 @@
           <span>{{ error }}</span>
         </div>
 
+        <!-- Success Message -->
+        <div v-if="success" class="success-message">
+          <div class="success-icon">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </div>
+          <span>{{ success }}</span>
+        </div>
+
         <!-- Submit Button -->
-        <button type="submit" class="login-button" :disabled="loading">
+        <button
+          type="submit"
+          class="register-button"
+          :disabled="loading || !isFormValid"
+        >
           <span v-if="!loading" class="button-content">
             <svg
               class="w-5 h-5 mr-2"
@@ -131,10 +222,10 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
               ></path>
             </svg>
-            Sign In
+            Create Account
           </span>
           <span v-else class="loading-content">
             <svg
@@ -156,17 +247,17 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            Signing In...
+            Creating Account...
           </span>
         </button>
       </form>
 
       <!-- Footer -->
-      <div class="login-footer">
+      <div class="register-footer">
         <p class="footer-text">
-          Don't have an account?
-          <router-link to="/register" class="signup-link"
-            >Sign up here</router-link
+          Already have an account?
+          <router-link to="/login" class="signin-link"
+            >Sign in here</router-link
           >
         </p>
       </div>
@@ -175,39 +266,109 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { inject } from "vue";
 
+const fullName = ref("");
 const email = ref("");
 const password = ref("");
+const confirmPassword = ref("");
+const agreeToTerms = ref(false);
 const error = ref("");
+const success = ref("");
 const loading = ref(false);
 const router = useRouter();
+
 // Inject the reactive isLoggedIn ref
 const auth = inject("auth");
 
-const login = async () => {
-  loading.value = true;
+// Form validation
+const isFormValid = computed(() => {
+  return (
+    fullName.value.trim() &&
+    email.value.trim() &&
+    password.value.length >= 6 &&
+    confirmPassword.value === password.value &&
+    agreeToTerms.value
+  );
+});
+
+const validateForm = () => {
   error.value = "";
 
+  if (!fullName.value.trim()) {
+    error.value = "Full name is required";
+    return false;
+  }
+
+  if (!email.value.trim()) {
+    error.value = "Email is required";
+    return false;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+    error.value = "Please enter a valid email address";
+    return false;
+  }
+
+  if (password.value.length < 6) {
+    error.value = "Password must be at least 6 characters long";
+    return false;
+  }
+
+  if (password.value !== confirmPassword.value) {
+    error.value = "Passwords do not match";
+    return false;
+  }
+
+  if (!agreeToTerms.value) {
+    error.value = "You must agree to the Terms of Service and Privacy Policy";
+    return false;
+  }
+
+  return true;
+};
+
+const register = async () => {
+  if (!validateForm()) return;
+
+  loading.value = true;
+  error.value = "";
+  success.value = "";
+
   try {
-    const response = await fetch("http://localhost:8000/api/auth/login_check", {
+    // Since there's no registration endpoint in your backend yet,
+    // I'll simulate the registration process
+    const response = await fetch("http://localhost:8000/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.value, password: password.value }),
+      body: JSON.stringify({
+        name: fullName.value,
+        email: email.value,
+        password: password.value,
+      }),
+      credentials: "include", // ✅ VERY IMPORTANT if allow_credentials is true
     });
-    const data = await response.json();
 
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      if (auth) auth.isLoggedIn.value = true; // ✅ now triggers reactivity
-      router.push("/"); // or wherever your protected route is
+    if (response.ok) {
+      const data = await response.json();
+      success.value = "Account created successfully! Redirecting to login...";
+
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
     } else {
-      error.value = "Invalid credentials";
+      const errorData = await response.json();
+      error.value =
+        errorData.message || "Registration failed. Please try again.";
     }
   } catch (e) {
-    error.value = "Login failed. Please try again.";
+    // For now, since the endpoint doesn't exist, we'll show a message
+    error.value =
+      "Registration endpoint not yet implemented. Please contact support.";
+    console.error("Registration error:", e);
   } finally {
     loading.value = false;
   }
@@ -215,19 +376,19 @@ const login = async () => {
 </script>
 
 <style scoped>
-/* Login Container */
-.login-container {
+/* Register Container */
+.register-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   padding: 1rem;
 }
 
 /* Background Pattern */
-.login-background {
+.register-background {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -260,21 +421,21 @@ const login = async () => {
   }
 }
 
-/* Login Card */
-.login-card {
+/* Register Card */
+.register-card {
   background: white;
   border-radius: 1.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   padding: 3rem;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   position: relative;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Login Header */
-.login-header {
+/* Register Header */
+.register-header {
   text-align: center;
   margin-bottom: 2.5rem;
 }
@@ -290,12 +451,12 @@ const login = async () => {
 .logo-icon {
   width: 3.5rem;
   height: 3.5rem;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #10b981, #059669);
   border-radius: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
 }
 
 .logo-text {
@@ -333,7 +494,7 @@ const login = async () => {
 }
 
 /* Form Styles */
-.login-form {
+.register-form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -377,9 +538,9 @@ const login = async () => {
 
 .form-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #10b981;
   background: white;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .form-input::placeholder {
@@ -388,15 +549,12 @@ const login = async () => {
 
 /* Form Options */
 .form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin: 0.5rem 0;
 }
 
 .checkbox-wrapper {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   cursor: pointer;
 }
@@ -404,26 +562,28 @@ const login = async () => {
 .checkbox-input {
   width: 1rem;
   height: 1rem;
-  accent-color: #3b82f6;
+  accent-color: #10b981;
   cursor: pointer;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
 }
 
 .checkbox-label {
   font-size: 0.875rem;
   color: #4b5563;
   cursor: pointer;
+  line-height: 1.4;
 }
 
-.forgot-link {
-  font-size: 0.875rem;
-  color: #3b82f6;
+.terms-link {
+  color: #10b981;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
-.forgot-link:hover {
-  color: #1d4ed8;
+.terms-link:hover {
+  color: #059669;
   text-decoration: underline;
 }
 
@@ -445,11 +605,29 @@ const login = async () => {
   flex-shrink: 0;
 }
 
-/* Login Button */
-.login-button {
+/* Success Message */
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.5rem;
+  color: #166534;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.success-icon {
+  flex-shrink: 0;
+}
+
+/* Register Button */
+.register-button {
   width: 100%;
   padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border: none;
   border-radius: 0.75rem;
@@ -457,20 +635,20 @@ const login = async () => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   margin-top: 0.5rem;
 }
 
-.login-button:hover:not(:disabled) {
+.register-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
 }
 
-.login-button:active {
+.register-button:active {
   transform: translateY(0);
 }
 
-.login-button:disabled {
+.register-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
@@ -498,7 +676,7 @@ const login = async () => {
 }
 
 /* Footer */
-.login-footer {
+.register-footer {
   text-align: center;
   margin-top: 2rem;
   padding-top: 2rem;
@@ -511,21 +689,21 @@ const login = async () => {
   margin: 0;
 }
 
-.signup-link {
-  color: #3b82f6;
+.signin-link {
+  color: #10b981;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
-.signup-link:hover {
-  color: #1d4ed8;
+.signin-link:hover {
+  color: #059669;
   text-decoration: underline;
 }
 
 /* Responsive Design */
 @media (max-width: 640px) {
-  .login-card {
+  .register-card {
     padding: 2rem 1.5rem;
     margin: 1rem;
     border-radius: 1rem;
@@ -544,18 +722,16 @@ const login = async () => {
     font-size: 1.75rem;
   }
 
-  .form-options {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
+  .checkbox-wrapper {
+    align-items: flex-start;
   }
 }
 
 /* Focus and accessibility improvements */
-.login-button:focus-visible,
+.register-button:focus-visible,
 .form-input:focus-visible,
 .checkbox-input:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #10b981;
   outline-offset: 2px;
 }
 

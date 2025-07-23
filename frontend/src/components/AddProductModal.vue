@@ -20,9 +20,6 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const isSubmitting = ref(false);
-const submitMessage = ref("");
-
 interface Category {
   id: number;
   name: string;
@@ -227,23 +224,10 @@ const handleProductSubmit = async (productData: any) => {
   }
 };
 
-const submitForm = async () => {
-  if (!validateForm()) return;
-
-  isSubmitting.value = true;
-  submitMessage.value = "Saving product...";
-
-  try {
-    await handleProductSubmit(formData.value); // emits result to parent
-    submitMessage.value = "Saved successfully!";
-    setTimeout(() => {
-      closeModal(); // closes after message briefly shows
-    }, 500);
-  } catch (err) {
-    submitMessage.value = "Failed to save. Try again.";
-    console.error("Save failed:", err);
-  } finally {
-    isSubmitting.value = false;
+const submitForm = () => {
+  if (validateForm()) {
+    handleProductSubmit(formData.value);
+    closeModal();
   }
 };
 </script>
@@ -501,10 +485,6 @@ const submitForm = async () => {
 
       <!-- Modal Footer -->
       <div class="modal-footer">
-        <div v-if="submitMessage" class="submit-status">
-          {{ submitMessage }}
-        </div>
-
         <button @click="closeModal" type="button" class="cancel-btn">
           Cancel
         </button>
@@ -512,10 +492,9 @@ const submitForm = async () => {
           @click="submitForm"
           type="button"
           class="submit-btn"
-          :disabled="!isFormValid || isSubmitting"
+          :disabled="!isFormValid"
         >
-          <span v-if="isSubmitting">Saving...</span>
-          <span v-else>Add Product</span>
+          Add Product
         </button>
       </div>
     </div>
@@ -523,13 +502,6 @@ const submitForm = async () => {
 </template>
 
 <style scoped>
-.submit-status {
-  flex-grow: 1;
-  align-self: center;
-  color: #3b82f6;
-  font-weight: 500;
-}
-
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
