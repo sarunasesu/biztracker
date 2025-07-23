@@ -72,4 +72,18 @@ class ExpensesController extends AbstractController
 
         return $this->json($revenues, 200, [], ['groups' => ['expenses:read']]);
     }
+
+        #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+public function delete(Expenses $expenses): JsonResponse
+{
+    $user = $this->security->getUser();
+    if (!$user || $expenses->getUser() !== $user) {
+        return new JsonResponse(['error' => 'Unauthorized'], 403);
+    }
+
+    $this->em->remove($expenses);
+    $this->em->flush();
+
+    return new JsonResponse(['message' => 'Expense deleted successfully']);
+}
 }

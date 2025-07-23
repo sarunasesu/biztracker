@@ -13,6 +13,15 @@ use Symfony\Bundle\SecurityBundle\Security; // ✅ Correct for Symfony 7
 #[Route('/api/categories')]
 class CategoryController extends AbstractController
 {
+    private EntityManagerInterface $em;
+    private Security $security;
+
+    public function __construct(EntityManagerInterface $em, Security $security)
+    {
+        $this->em = $em;
+        $this->security = $security;
+    }
+
     #[Route('', name: 'create_category', methods: ['POST'])]
     public function create(Request $request, EntityManagerInterface $em, Security $security): JsonResponse
     {
@@ -52,4 +61,18 @@ class CategoryController extends AbstractController
 
         return $this->json($result);
     }
+
+            #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+public function delete(Category $category): JsonResponse
+{
+    $user = $this->security->getUser();
+    if (!$user || $category->getUser() !== $user) {
+        return new JsonResponse(['error' => 'Unauthorized'], 403);
+    }
+
+    $this->em->remove($category);
+    $this->em->flush();
+
+    return new JsonResponse(['message' => 'Category deleted successfully']);
+}
 }

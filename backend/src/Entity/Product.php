@@ -47,7 +47,7 @@ class Product
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('product:read')]
+    #[Groups(['product:read', 'product:write'])]
     private ?Category $category = null;
 
     #[ORM\Column(type: 'integer')]

@@ -15,6 +15,7 @@ import {
   MagnifyingGlassIcon,
   CalendarIcon,
 } from "@heroicons/vue/24/outline";
+import Swal from "sweetalert2";
 
 const expenses = ref<any[]>([]);
 const isLoading = ref(true);
@@ -106,6 +107,45 @@ const handleExpensesSubmit = async () => {
     console.error("Failed to refresh expenses list:", err);
   } finally {
     isLoading.value = false;
+  }
+};
+
+const deleteExpenses = async (id: number) => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This action cannot be undone!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  });
+
+  if (result.isConfirmed) {
+    // Show loading spinner
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      await axios.delete(`/api/expenses/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Update product list
+      expenses.value = expenses.value.filter((p) => p.id !== id);
+      expensesCache = expenses.value;
+
+      // Show success message
+      Swal.fire("Deleted!", "The expense has been deleted.", "success");
+    } catch (err) {
+      console.error("Failed to delete revenue:", err);
+      Swal.fire("Error", "An error occurred while deleting.", "error");
+    }
   }
 };
 
@@ -268,7 +308,12 @@ const formatDate = (dateStr: string): string => {
 
           <div class="expense-actions">
             <button class="action-btn edit">Edit</button>
-            <button class="action-btn delete">Delete</button>
+            <button
+              class="action-btn delete"
+              @click="deleteExpenses(expense.id)"
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>

@@ -104,6 +104,17 @@ class ProductController extends AbstractController
         return $this->json($products, 200, [], ['groups' => ['product:read']]);
     }
 
+    #[Route('/{id}', name: 'show', methods: ['GET'])]
+public function show(Product $product): JsonResponse
+{
+    $user = $this->security->getUser();
+    if (!$user || $product->getUser() !== $user) {
+        return new JsonResponse(['error' => 'Unauthorized'], 403);
+    }
+
+    return $this->json($product, 200, [], ['groups' => ['product:read']]);
+}
+
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
 public function delete(Product $product): JsonResponse
 {
@@ -117,5 +128,60 @@ public function delete(Product $product): JsonResponse
 
     return new JsonResponse(['message' => 'Product deleted successfully']);
 }
+
+#[Route('/{id}', name: 'update', methods: ['PUT', 'PATCH', 'POST'])]
+public function update(Product $product, Request $request): JsonResponse
+{
+    $user = $this->security->getUser();
+    if (!$user || $product->getUser() !== $user) {
+        return new JsonResponse(['error' => 'Unauthorized'], 403);
+    }
+
+    // Update basic fields
+    $product->setName($request->get('name', $product->getName()));
+    $product->setSku($request->get('sku', $product->getSku()));
+    $product->setCostPrice((float)$request->get('costPrice'));
+    $product->setValuePrice((float)$request->get('valuePrice'));
+    $product->setSoldPrice($request->get('soldPrice') !== null ? (float)$request->get('soldPrice') : null);
+    $product->setStock((int)$request->get('stock'));
+    $product->setComment($request->get('comment'));
+    $product->setDescription($request->get('description'));
+
+    // Dates
+    try {
+        if ($request->get('purchaseDate')) {
+            $product->setPurchaseDate(new \DateTime($request->get('purchaseDate')));
+        }
+        if ($request->get('soldDate')) {
+            $product->setSoldDate(new \DateTime($request->get('soldDate')));
+        }
+    } catch (\Exception $e) {
+        return new JsonResponse(['error' => 'Invalid date format'], 400);
+    }
+
+    // Category
+    $categoryId = $request->get('categoryId');
+    if ($categoryId) {
+        $category = $this->em->getRepository(Category::class)->find($categoryId);
+        if (!$category) {
+            return new JsonResponse(['error' => 'Category not found'], 400);
+        }
+        $product->setCategory($category);
+    }
+
+    // Optional new photo
+    /** @var UploadedFile|null $uploadedFile */
+    $uploadedFile = $request->files->get('photo');
+    if ($uploadedFile) {
+        $filename = uniqid() . '.' . $uploadedFile->guessExtension();
+        $uploadedFile->move($this->getParameter('uploads_directory'), $filename);
+        $product->setPhoto($filename);
+    }
+
+    $this->em->flush();
+
+    return new JsonResponse(['message' => 'Product updated successfully']);
+}
+
 
 }

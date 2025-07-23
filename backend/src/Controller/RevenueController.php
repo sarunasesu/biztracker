@@ -72,4 +72,18 @@ class RevenueController extends AbstractController
 
         return $this->json($revenues, 200, [], ['groups' => ['revenue:read']]);
     }
+
+        #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+public function delete(Revenue $revenue): JsonResponse
+{
+    $user = $this->security->getUser();
+    if (!$user || $revenue->getUser() !== $user) {
+        return new JsonResponse(['error' => 'Unauthorized'], 403);
+    }
+
+    $this->em->remove($revenue);
+    $this->em->flush();
+
+    return new JsonResponse(['message' => 'Revenue deleted successfully']);
+}
 }

@@ -1,12 +1,7 @@
-<script lang="ts">
-// ✅ Module-level cache shared between component instances (not reactive)
-let productCache: any[] | null = null;
-let categoryCache: string[] | null = null;
-</script>
-
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import axios from "../axios"; // Adjust path if necessary
+import { useInventoryStore } from "../stores/inventoryStore.ts";
+import axios from "../axios";
 import AddProductModal from "../components/AddProductModal.vue";
 import Swal from "sweetalert2";
 import {
@@ -18,68 +13,25 @@ import {
   CurrencyDollarIcon,
 } from "@heroicons/vue/24/outline";
 
-const products = ref<any[]>([]);
+const token = localStorage.getItem("token") || "";
+const store = useInventoryStore();
 const isLoading = ref(true);
-const token = localStorage.getItem("token");
 
-onMounted(async () => {
-  isLoading.value = true;
-
-  if (productCache) {
-    products.value = productCache;
-  } else {
-    try {
-      const res = await axios.get("/api/products", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      products.value = res.data;
-      productCache = res.data;
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-    }
-  }
-
-  if (categoryCache) {
-    categories.value = categoryCache;
-  } else {
-    try {
-      const res = await axios.get("/api/categories", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      categories.value = res.data.map((c: any) => c.name);
-      categoryCache = categories.value;
-    } catch (err) {
-      console.error("Failed to fetch categories:", err);
-    }
-  }
-
-  isLoading.value = false;
-});
-
-// Modal state for adding new products
 const showAddProductModal = ref(false);
-
 const searchQuery = ref("");
 const selectedCategory = ref("");
 
-const categories = ref<string[]>([]);
-
 onMounted(async () => {
-  try {
-    const res = await axios.get("/api/categories", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    categories.value = res.data.map((c: any) => c.name);
-  } catch (err) {
-    console.error("Failed to fetch categories:", err);
-  }
+  isLoading.value = true;
+  await Promise.all([store.fetchProducts(token), store.fetchCategories(token)]);
+  isLoading.value = false;
 });
 
 const filteredProducts = computed(() =>
-  products.value
+  (store.products || [])
     .map((p) => ({
       ...p,
-      status: p.stock < 20 ? "Low Stock" : "In Stock",
+      status: p.stock < 10 ? "Low Stock" : "In Stock",
     }))
     .filter((p) => {
       const name = p.name?.toLowerCase?.() ?? "";
@@ -102,18 +54,35 @@ const closeAddProductModal = () => {
   showAddProductModal.value = false;
 };
 
-const handleProductSubmit = async () => {
-  isLoading.value = true;
-  try {
-    const res = await axios.get("/api/products", {
-      headers: { Authorization: `Bearer ${token}` },
+const handleProductSubmit = async (newProduct?: any) => {
+  if (newProduct) {
+    // Show SweetAlert loading modal
+    Swal.fire({
+      title: "Adding product...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
-    products.value = res.data;
-    productCache = res.data;
-  } catch (err) {
-    console.error("Failed to refresh products:", err);
-  } finally {
-    isLoading.value = false;
+
+    try {
+      await store.addNewProductFromApi(token, newProduct);
+      Swal.close(); // Close loading modal on success
+      showAddProductModal.value = false;
+      Swal.fire("Added!", "The product was added successfully.", "success");
+    } catch (err) {
+      console.error("Failed to add product:", err);
+      Swal.fire("Error", "Failed to add product. Try again.", "error");
+    }
+  } else {
+    isLoading.value = true;
+    try {
+      await store.fetchProducts(token);
+    } catch (err) {
+      console.error("Failed to refresh products:", err);
+    } finally {
+      isLoading.value = false;
+    }
   }
 };
 
@@ -129,7 +98,6 @@ const deleteProduct = async (id: number) => {
   });
 
   if (result.isConfirmed) {
-    // Show loading spinner
     Swal.fire({
       title: "Deleting...",
       allowOutsideClick: false,
@@ -143,11 +111,8 @@ const deleteProduct = async (id: number) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Update product list
-      products.value = products.value.filter((p) => p.id !== id);
-      productCache = products.value;
+      store.deleteProductLocally(id);
 
-      // Show success message
       Swal.fire("Deleted!", "The product has been deleted.", "success");
     } catch (err) {
       console.error("Failed to delete product:", err);
@@ -156,18 +121,18 @@ const deleteProduct = async (id: number) => {
   }
 };
 
-// Helper function for status styling
 const getStatusColor = (status: string) => {
   return status === "Low Stock" ? "status-low" : "status-good";
 };
 
-const totalProducts = computed(() => products.value.length);
+const totalProducts = computed(() => store.products.length);
 const totalValue = computed(() =>
-  products.value.reduce((sum, p) => sum + p.valuePrice * p.stock, 0)
+  store.products.reduce((sum, p) => sum + p.valuePrice * p.stock, 0)
 );
 const lowStockItems = computed(
-  () => products.value.filter((p) => p.stock < 10).length
+  () => store.products.filter((p) => p.stock < 10).length
 );
+const categories = computed(() => store.categories);
 </script>
 
 <template>
@@ -186,7 +151,11 @@ const lowStockItems = computed(
 
     <!-- Stats Cards with Skeleton -->
     <div v-if="isLoading" class="stats-grid">
-      <div v-for="n in 4" :key="n" class="stat-card skeleton-card">
+      <div
+        v-for="n in 4"
+        :key="`skeleton-${n}`"
+        class="stat-card skeleton-card"
+      >
         <div class="stat-icon skeleton"></div>
         <div class="stat-content">
           <span class="stat-label skeleton-text"></span>
@@ -196,39 +165,28 @@ const lowStockItems = computed(
     </div>
     <div v-else class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon blue">
-          <CubeIcon />
-        </div>
+        <div class="stat-icon blue"><CubeIcon /></div>
         <div class="stat-content">
           <span class="stat-label">Total Products</span>
           <span class="stat-value">{{ totalProducts }}</span>
         </div>
       </div>
-
       <div class="stat-card">
-        <div class="stat-icon green">
-          <CurrencyDollarIcon />
-        </div>
+        <div class="stat-icon green"><CurrencyDollarIcon /></div>
         <div class="stat-content">
           <span class="stat-label">Total Value</span>
           <span class="stat-value">${{ totalValue.toLocaleString() }}</span>
         </div>
       </div>
-
       <div class="stat-card">
-        <div class="stat-icon red">
-          <ExclamationTriangleIcon />
-        </div>
+        <div class="stat-icon red"><ExclamationTriangleIcon /></div>
         <div class="stat-content">
           <span class="stat-label">Low Stock</span>
           <span class="stat-value">{{ lowStockItems }}</span>
         </div>
       </div>
-
       <div class="stat-card">
-        <div class="stat-icon purple">
-          <ChartBarIcon />
-        </div>
+        <div class="stat-icon purple"><ChartBarIcon /></div>
         <div class="stat-content">
           <span class="stat-label">Categories</span>
           <span class="stat-value">{{ categories.length }}</span>
@@ -252,7 +210,7 @@ const lowStockItems = computed(
           <option value="">All Categories</option>
           <option
             v-for="category in categories"
-            :key="category"
+            :key="`cat-${category}`"
             :value="category"
           >
             {{ category }}
@@ -263,14 +221,18 @@ const lowStockItems = computed(
 
     <!-- Product List -->
     <div class="products-section">
-      <div class="section-header" v-if="!isLoading">
+      <div v-if="!isLoading" class="section-header">
         <h3>Inventory Items</h3>
         <span class="products-count">{{ filteredProducts.length }} items</span>
       </div>
 
       <!-- Skeleton Items -->
       <div v-if="isLoading" class="products-list">
-        <div class="skeleton-item" v-for="n in 5" :key="n">
+        <div
+          class="skeleton-item"
+          v-for="n in 5"
+          :key="`skeleton-product-${n}`"
+        >
           <div class="skeleton-thumbnail"></div>
           <div class="skeleton-lines">
             <div class="skeleton-line short"></div>
@@ -279,60 +241,72 @@ const lowStockItems = computed(
         </div>
       </div>
 
-      <!-- Actual Product Items -->
-      <div v-else class="products-list">
-        <div
-          v-for="product in filteredProducts"
-          :key="product.id"
-          class="product-item"
+      <!-- Actual Product Items with transition -->
+      <template v-if="!isLoading && filteredProducts.length">
+        <transition-group
+          name="fade-slide"
+          tag="div"
+          class="products-list"
+          appear
         >
-          <div class="product-main">
-            <div class="product-info">
-              <h4 class="product-name">{{ product.name }}</h4>
-              <span class="product-sku">{{ product.sku }}</span>
+          <div
+            v-for="product in filteredProducts"
+            :key="`product-${product.id}`"
+            class="product-item"
+          >
+            <div class="product-main">
+              <div class="product-info">
+                <h4 class="product-name">{{ product.name }}</h4>
+                <span class="product-sku">{{ product.sku }}</span>
+              </div>
+              <div class="product-details">
+                <span class="product-category">
+                  {{ product.category?.name || "Uncategorized" }}
+                </span>
+                <span
+                  :class="['product-status', getStatusColor(product.status)]"
+                >
+                  {{ product.status }}
+                </span>
+              </div>
             </div>
-            <div class="product-details">
-              <span class="product-category">{{
-                product.category?.name || "Uncategorized"
-              }}</span>
-              <span :class="['product-status', getStatusColor(product.status)]">
-                {{ product.status }}
-              </span>
-            </div>
-          </div>
 
-          <div class="product-metrics">
-            <div class="metric">
-              <span class="metric-label">Quantity</span>
-              <span
-                :class="['metric-value', product.stock < 10 ? 'text-red' : '']"
+            <div class="product-metrics">
+              <div class="metric">
+                <span class="metric-label">Quantity</span>
+                <span
+                  :class="[
+                    'metric-value',
+                    product.stock < 10 ? 'text-red' : '',
+                  ]"
+                >
+                  {{ product.stock }}
+                </span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Price</span>
+                <span class="metric-value">${{ product.valuePrice }}</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Total</span>
+                <span class="metric-value total">
+                  ${{ (product.valuePrice * product.stock).toLocaleString() }}
+                </span>
+              </div>
+            </div>
+
+            <div class="product-actions">
+              <!-- <button class="action-btn edit">Edit</button> -->
+              <button
+                class="action-btn delete"
+                @click="deleteProduct(product.id)"
               >
-                {{ product.stock }}
-              </span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Price</span>
-              <span class="metric-value">${{ product.valuePrice }}</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Total</span>
-              <span class="metric-value total">
-                ${{ (product.valuePrice * product.stock).toLocaleString() }}
-              </span>
+                Delete
+              </button>
             </div>
           </div>
-
-          <div class="product-actions">
-            <button class="action-btn edit">Edit</button>
-            <button
-              class="action-btn delete"
-              @click="deleteProduct(product.id)"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
+        </transition-group>
+      </template>
     </div>
 
     <!-- Add Product Modal -->
@@ -380,5 +354,30 @@ const lowStockItems = computed(
   50% {
     opacity: 0.4;
   }
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.4s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-slide-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 </style>
